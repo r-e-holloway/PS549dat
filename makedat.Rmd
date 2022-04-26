@@ -1,0 +1,36 @@
+---
+title: "make_dat"
+author: "Ruth Holloway"
+date: '2022-04-26'
+output: pdf_document
+---
+
+```{r}
+#update.packages("tidyverse")
+library(tidyverse)
+library(dplyr)
+library(haven)
+
+#load all of the datasets I'm combining
+MMPD <- read_stata("MMPD/mmALL_073120_v16.dta")
+#View(MMPD)
+GWF <- read_stata("GWF Autocratic Regimes 1.2/GWF_AllPoliticalRegimes.dta")
+View(GWF)
+Svolik <- read_stata("regime data/regime and no authority spells, country-year, 1946-2008.dta")
+#View(Svolik)
+protest_country_year <- left_join(MMPD, Svolik)
+#View(protest_country_year)
+
+initial_merge<-unique(protest_country_year)
+
+edit_GWF <- subset(GWF, select = c(cowcode, year, gwf_country, gwf_regimetype, gwf_party, gwf_military, gwf_monarchy, gwf_personal, gwf_nonautocracy))
+
+#join datasets
+Newdat <- left_join(initial_merge, edit_GWF)
+#View(Newdat)
+
+#newerdat <- unique(Newdat)
+
+```
+
+
