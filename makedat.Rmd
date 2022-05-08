@@ -5,7 +5,9 @@ date: '2022-04-26'
 output: pdf_document
 ---
 
-```{r}
+```{r include=FALSE}
+##create and clean data
+
 #update.packages("tidyverse")
 library(tidyverse)
 library(dplyr)
@@ -14,23 +16,192 @@ library(haven)
 #load all of the datasets I'm combining
 MMPD <- read_stata("MMPD/mmALL_073120_v16.dta")
 #View(MMPD)
+
 GWF <- read_stata("GWF Autocratic Regimes 1.2/GWF_AllPoliticalRegimes.dta")
-View(GWF)
+#View(GWF) 
+
+#rename variables for merge
+GWF <- rename(GWF, ccode = cowcode)
+GWF <- rename(GWF, personal = gwf_personal)
+GWF <- rename(GWF, party = gwf_party)
+GWF <- rename(GWF, military = gwf_military)
+GWF <- rename(GWF, monarchy = gwf_monarchy)
+
+#subset data so only variables of interest remain
+my_GWF<- subset (GWF, select = c(ccode, personal, party, military, monarchy))
+
 Svolik <- read_stata("regime data/regime and no authority spells, country-year, 1946-2008.dta")
 #View(Svolik)
+
+#merge protest and regime data
 protest_country_year <- left_join(MMPD, Svolik)
 #View(protest_country_year)
 
-initial_merge<-unique(protest_country_year)
+#remove repeated observances
+Svolik_protest<-unique(protest_country_year)
+#View(Svolik_protest)
 
-edit_GWF <- subset(GWF, select = c(cowcode, year, gwf_country, gwf_regimetype, gwf_party, gwf_military, gwf_monarchy, gwf_personal, gwf_nonautocracy))
+#subset data to include only variables of interest
+edit_SP <- subset(Svolik_protest, select = c(country, ccode, year, regime, region, protest, protestnumber, protesterviolence, location, participants, stateresponse1, stateresponse2, stateresponse3, stateresponse4, stateresponse5, stateresponse6))
+#View(edit_SP)
 
-#join datasets
-Newdat <- left_join(initial_merge, edit_GWF)
-#View(Newdat)
+#create new binary variable that indicates if the state accomodated protestor demands
+edit_SP$accomodate <- ifelse (edit_SP$stateresponse1=="accomodation" | edit_SP$stateresponse2=="accomodation" | edit_SP$stateresponse3=="accomodation"| edit_SP$stateresponse4=="accomodation" | edit_SP$stateresponse5=="accomodation" | edit_SP$stateresponse6=="accomodation", 1, 0)
 
-#newerdat <- unique(Newdat)
+edit_SP$arrest <- ifelse (edit_SP$stateresponse1=="arrests" | edit_SP$stateresponse2=="arrests" | edit_SP$stateresponse3=="arrests"| edit_SP$stateresponse4=="arrests" | edit_SP$stateresponse5=="arrests" | edit_SP$stateresponse6=="arrests", 1, 0)
+
+edit_SP$stateviolence <- ifelse (edit_SP$stateresponse1=="killings" | edit_SP$stateresponse2=="killings" | edit_SP$stateresponse3=="killings"| edit_SP$stateresponse4=="killings" | edit_SP$stateresponse5=="killings" | edit_SP$stateresponse6=="killings" | edit_SP$stateresponse1=="shootings" | edit_SP$stateresponse2=="shootings" | edit_SP$stateresponse3=="shootings"| edit_SP$stateresponse4=="shootings" | edit_SP$stateresponse5=="shootings" | edit_SP$stateresponse6=="shootings", 1, 0)
+
+#create binary variable to indicate whether protest was national
+edit_SP$national <- ifelse (edit_SP$location == "national", 1, 0)
+
+#create binary variable to indicate whether protesters numbered greater than 1000
+#edit_SP$thousand <- ifelse (edit_SP$participants == "1000" |edit_SP$participants == "Thousands" | edit_SP$participants == "thousands" | edit_SP$participants == "several thousand" | edit_SP$participants == "8000-9000" | edit_SP$participants == "6000-7000" | edit_SP$participants == "6000+" | edit_SP$participants == "6000" | edit_SP$participants == "5600" | edit_SP$participants == "5000-10000"| edit_SP$participants == "5000+" | edit_SP$participants == "5000" | edit_SP$participants == "4700+" | edit_SP$participants == "4500" | edit_SP$participants == "4000"| edit_SP$participants == "3700"| edit_SP$participants == "3500-5000"| edit_SP$participants == "3500"| edit_SP$participants == "3000+" | edit_SP$participants == "3000-4000"| edit_SP$participants == "3000-6000" | edit_SP$participants == "3000-10000"| edit_SP$participants == "2600"| edit_SP$participants == "2500" | edit_SP$participants == "2400+"| edit_SP$participants == "2000"| edit_SP$participants == "2000+"| edit_SP$participants == "2,000-3,000"| edit_SP$participants == "1900"| edit_SP$participants == "1700"| edit_SP$participants == "1600"| edit_SP$participants == "1500-2000"| edit_SP$participants == "1400"| edit_SP$participants == "1200"| edit_SP$participants == "1150"| edit_SP$participants == "1100-10000s"| edit_SP$participants == "100s-1000s"| edit_SP$participants == "100s-1000" | edit_SP$participants == "1000s"| edit_SP$participants == "1000"| edit_SP$participants == "1000+", 1,0)
+
+#binary variable for >= 10,000
+edit_SP$tenthousand <- ifelse (edit_SP$participants == "Tens of thousands" | edit_SP$participants == "tens of thousands" | edit_SP$participants == "82000" | edit_SP$participants == "70000"| edit_SP$participants == "68000" | edit_SP$participants == "60000" | edit_SP$participants == "55000" | edit_SP$participants == "50000"| edit_SP$participants == "50000-80000" | edit_SP$participants == "50000-70000" | edit_SP$participants == "50000-120000" | edit_SP$participants == "45000" | edit_SP$participants == "40000"| edit_SP$participants == "35000" | edit_SP$participants == "30000-40000"| edit_SP$participants == "25000"| edit_SP$participants == "20000"| edit_SP$participants == "20000+"| edit_SP$participants == "17000"| edit_SP$participants == "16000"| edit_SP$participants == "15000+"| edit_SP$participants == "15000"| edit_SP$participants == "14000"| edit_SP$participants == "13000"| edit_SP$participants == "12000"| edit_SP$participants == "100s-10000s"| edit_SP$participants == "10000s"| edit_SP$participants == "10000"| edit_SP$participants == "10000+" | edit_SP$participants == "hundreds of thousands" | edit_SP$participants == "750000" | edit_SP$participants == "500000" | edit_SP$participants == "400000"| edit_SP$participants == "300000"| edit_SP$participants == "250000"| edit_SP$participants == "200000+"| edit_SP$participants == "200000-400000"| edit_SP$participants == "200000"| edit_SP$participants == "150000"| edit_SP$participants == "135000"| edit_SP$participants == "120000"| edit_SP$participants == "100000"| edit_SP$participants == "100000+"| edit_SP$participants == "100000-200000", 1,0)
+
+#binary variable for >= 100,000
+#edit_SP$hundredthousand <- ifelse (edit_SP$participants == "hundreds of thousands" | edit_SP$participants == "750000" | edit_SP$participants == "500000" | edit_SP$participants == "400000"| edit_SP$participants == "300000"| edit_SP$participants == "250000"| edit_SP$participants == "200000+"| edit_SP$participants == "200000-400000"| edit_SP$participants == "200000"| edit_SP$participants == "150000"| edit_SP$participants == "135000"| edit_SP$participants == "120000"| edit_SP$participants == "100000"| edit_SP$participants == "100000+"| edit_SP$participants == "100000-200000", 1,0)
+
+#only include regimes during which a protest took place
+SP_dat <- subset(edit_SP, protest == 1)
+
+#create data to evaluate second hypothesis
+H2SP <- subset(edit_SP, select = c(country, ccode, year, regime, protest, accomodate, arrest, stateviolence, national, protesterviolence, tenthousand))
+
+H2SP <- left_join(H2SP, my_GWF)
+H2SP <- unique(H2SP)
+
+#subset data to include variables of interest
+SP_dat <- subset(edit_SP, select = c(country, ccode, year, regime, protestnumber, accomodate, arrest, stateviolence, national, protesterviolence, tenthousand))
+#View(SP_dat)
+
+#add authoritarian regime classifications and reorder columns
+dat <- left_join(SP_dat, my_GWF)
+dat <- dat[, c(1, 2, 3, 4, 12, 13, 14, 15, 5, 6, 7, 8, 9, 10, 11)]
+#View(dat)
+
+#edit data to include only authoritarian regimes
+mydat <- unique(dat)
+nodem_mydat <- subset(mydat, regime != "democracy")
+nodem_mydat <- subset(nodem_mydat, regime != "independence")
+nodem_mydat <- subset(nodem_mydat, regime != "no authority")
+#View(nodem_mydat)
+```
+
+```{r }
+#see which variables are most influential
+
+#define my matrices
+library(glmnet)
+y <- nodem_mydat$accomodate
+x <- data.matrix(nodem_mydat[, c('national', 'protesterviolence', "tenthousand", 'protestnumber')])
+
+#k-fold cross validation
+cv_model <- cv.glmnet(x, y, alpha = 1)
+
+#find lambda that minimizes mean squared error
+best_lambda <- cv_model$lambda.min
+best_lambda #0.0001026071
+
+best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
+coef(best_model)
+#protesterviolence got dropped by the lasso because it wasn't influential enough, so I'm not going to include it in my analysis
+```
+
+```{r include=FALSE}
+library(optmatch)
+
+#went with another method 
+
+#reorder rows by personal condition in descending order 
+#nodem_mydat <- nodem_mydat %>% arrange(desc(personal))
+
+#not an awesome balance here
+#table(nodem_mydat$personal)
+
+#use fullmatch from optmatch package to do 1:1 and 1:k matching
+#fm1 <- fullmatch (accomodate~personal+ national + tenthousand + protestnumber, data=nodem_mydat)
+#summary(fm1) #sample size of 607
+
+#not the best matches; likely due to the fact that we were working with a treatment-control ratio of 1:3
+#plot(fm1, type = "hist")
+
+#create matched model
+#matched.model <- lm(accomodate~personal, data=fm1)
+#summary(matched.model)
 
 ```
+```{r include=FALSE}
+#let's match on rank-based mahalanobis distance
+#mahal_dist <- match_on(accomodate~personal+national+tenthousand+protestnumber,data=nodem_mydat,method="rank_mahalanobis")
+
+#fmMh <- fullmatch(mahal_dist,data=nodem_mydat)
+#summary(fmMh,min.controls=0,max.controls=Inf)
+
+# Require no more than one treated in each set
+#fmMh1 <- fullmatch(mahal_dist,data=nodem_mydat,min.controls=1)
+#summary(fmMh1,min.controls=0,max.controls=Inf)
+
+#pmMh1 <- pairmatch(mahal_dist,data=nodem_mydat,remove.unmatchables = TRUE)
+#summary(pmMh1,min.controls=0,max.controls=Inf)
+
+#nodem_mydat$fmMh1 <- fmMh1
+#nodem_mydat$pmMh1 <- pmMh1
+
+```
+
+```{r }
+#let's do some tests
+
+#doesn't look like I need to do matching because the balance is good here
+library(RItools)
+xb1 <- xBalance(accomodate~personal + national + tenthousand + protestnumber,
+  strata = list(raw = NULL),
+  data = nodem_mydat,
+  report = c(
+    "std.diffs", "z.scores", "adj.means",
+    "adj.mean.diffs", "chisquare.test", "p.values"
+  )
+)
+xb1$results
+xb1$results["personal", , ]
+
+
+library(estimatr)
+library(stargazer)
+
+mod<-lm_robust(accomodate ~ personal + party + military, data=nodem_mydat)
+summary(mod) #HC2 robust standard errors: all of the regime types' CIs cross 0 except for the intercept
+
+model1 <- lm(accomodate ~ personal + party + military, data=nodem_mydat)
+summary(model1) #p-values aren't looking so hot here, again, except for the intercept
+
+model2 <- lm(accomodate ~ personal + national + tenthousand +protestnumber, data = nodem_mydat) #the way that the number of participants was reported leads to some really icky coefficients, so I went back and created three binary variables to indicate the number of protesters (1000+, 10,000+, 100,000+)
+
+model3 <- lm (stateviolence ~ personal + party + military, data=nodem_mydat)
+summary(model3)
+
+model4 <- lm (arrest ~ personal + party + military, data=nodem_mydat)
+summary(model4)
+
+model5 <- lm (protest ~ party + personal + military, data=H2SP)
+summary(model5)
+```
+
+```{r }
+stargazer(model2, type="text", title="H1: Summary Statistics", out="table1.txt")
+```
+
+```{r }
+stargazer(model5, type="text", title="H2: Summary Statistics", out="table2.txt")
+```
+
+```{r }
+stargazer(model1, type="text", title="Table 3: Comparison of Authoritarian Regime Type", out="table2.txt")
+```
+
+
 
 
